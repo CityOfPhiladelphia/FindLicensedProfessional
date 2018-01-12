@@ -1,0 +1,293 @@
+﻿<div style="width: 100%;">
+	<!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>-->
+	<script src="//www.phila.gov/Style%20Library/Scripts/jquery-ui-1.8.1.custom.min.js" type="text/javascript"></script>
+	<script src="//www.phila.gov/Style%20Library/Scripts/jquery.layout.js" type="text/javascript"></script>
+	<script src="//www.phila.gov/Style%20Library/Scripts/grid.locale-en.js" type="text/javascript"></script>
+	<script src="//www.phila.gov/Style%20Library/Scripts/ui.multiselect.js" type="text/javascript"></script>
+	<script src="//www.phila.gov/Style%20Library/Scripts/jquery.jqGrid.min.js" type="text/javascript"></script>
+	<script src="//www.phila.gov/Style%20Library/Scripts/jquery.tablednd.js" type="text/javascript"></script>
+	<script src="//www.phila.gov/Style%20Library/Scripts/jquery.contextmenu.js" type="text/javascript"></script>
+	<script src="//www.phila.gov/Style%20Library/Scripts/jquery.layout.js" type="text/javascript"></script>
+	<script src="//www.phila.gov/Style%20Library/Scripts/jquery.tgrid.js" type="text/javascript"></script>
+	<script src="//www.phila.gov/Style%20Library/Scripts/spin.min.js" type="text/javascript"></script>
+	<div class="loading" id='loading' style='display: none;'></div>
+	<div class="searchParams">
+		<!--<div class="searchHeader" style="padding-bottom:20px;>
+				Search for a Licensed Professional</div>-->
+		<label id="lblType">
+				Type of Professional:</label><select id="selType">
+					<option value="" selected>Make a Selection</option>
+					<!--<option value="3520">Electrical Inspection Agency</option>
+					<option value="3527">Contractor</option>
+					<option value="3514">Master Plumber</option>
+					<option value="3530">Fire Supp System Apprentice</option>
+					<option value="3529">Fire Suppression System Worker</option>
+					<option value="3525">Fire Suppression System</option>
+					<option value="3704">Home Inspection License</option>
+					<option value="3516">Electrical Contractor</option>
+					<option value="3526">Expeditor</option>
+					<option value="3510">Warm Air Installer</option>
+					<option value="3131">Sheet Metal</option>
+         			<option value="3540">Demolition License</option>-->
+				</select>
+		<!-- Button Here--><br>
+	</div>
+
+	<div class="searchResults">
+
+		<div id="jqGridContainer">
+			<table id="jqgrid1">
+			</table>
+			<div id="pager5">
+			</div>
+		</div>
+		<div class="printbutton">
+			<input type=button value="Print This View" class="btnBlue" onclick="Print()" />
+		</div>
+	</div>
+
+	<script language="javascript" type="text/javascript">
+		var mydata = [];
+		var serviceURL = "https://data.phila.gov/carto/api/v2/sql?q=";
+
+		function Print() {
+			$("body").prepend('<div class="printonly ui-jqgrid-view" id="gview_jqgrid1">' + $(".ui-jqgrid-view").html() +
+				'</div>');
+			$("form").hide();
+			window.print();
+			$(".printonly").remove();
+			$("form").show();
+			return false;
+		}
+
+
+		function readMoreData(gotourl, arr) {
+
+			window.callWCFServiceJSON('cb2', gotourl + "&$format=json&$callback=cb2", null, function (data, currobject) {
+				arr = arr.concat(data.d.results);
+				if (data.d.__next) {
+					readMoreData(data.d.__next, arr);
+				} else {
+					$('#jqgrid1').jqGrid('GridUnload');
+					mydata = arr;
+					//jQuery("#jqgrid1").trigger("reloadGrid");
+					setupGrid(mydata);
+				}
+			});
+		}
+
+
+		function RunContractorSearch() {
+			$('#loading').show();
+			var selectOption = $('#selType');
+
+			var gotourl = serviceURL + decodeURIComponent("select * from li_trade_licenses where revenuecode = '" + selectOption
+				.val().toString() + "' AND licensestatus = 'ACTIVE'");
+			//"http://services.phila.gov/PhillyApi/Data/v1.0/licensetypes('" + selectOption.val().toString() + "')/licensedcontractors?1=1";
+
+			cb2 = null;
+			window.callWCFServiceJSON('cb2', gotourl + "&$format=json&$callback=cb2", null, function (data,
+				currobject) {
+				if (!data.error && data.rows.length > 0) {
+					$('#jqgrid1').jqGrid('GridUnload');
+					mydata = data.rows;
+					setupGrid(mydata);
+					/*
+					var moreurl = data.d.__next;
+					if (moreurl) {
+						mydata = readMoreData(moreurl, mydata);
+						//jQuery("#jqgrid1").trigger("reloadGrid");
+					}
+					else {
+						setupGrid(mydata);
+					}*/
+				} else {
+					$('#loading').hide();
+					alert("No contractors found for this category.");
+				}
+			});
+
+
+		}
+
+		function nameFormatter(cellvalue, options, rowObject) {
+			return $.trim(cellvalue) + " " + $.trim(rowObject.contactname) + ((!rowObject.companyname) ? '' : ' - ' + $.trim(
+				rowObject.companyname));
+		}
+
+		function setupGrid(mydata) {
+
+			jQuery("#jqgrid1").jqGrid({
+				data: mydata,
+				datatype: "clientSide",
+				height: 'auto',
+				rowNum: 15,
+				rowList: [15, 30, 60, 100000000],
+				colNames: ['Contact', 'License #' /*, 'Address', 'City', 'State', 'Zip' */ ],
+				colModel: [{
+						name: 'legallast',
+						index: 'legallast',
+						width: 200,
+						sorttype: "string",
+						formatter: nameFormatter
+					},
+					{
+						name: 'licensenumber',
+						index: 'licensenumber',
+						width: 60,
+						sorttype: "int"
+					},
+					/*{ name: 'contact_address', index: 'contact_address', width: 90, sorttype: "string" },
+					{ name: 'contact_city', index: 'contact_city', width: 120, sorttype: "string" },
+					{ name: 'contact_state', index: 'contact_state', width: 40, sorttype: "string" },
+					{ name: 'contact_zip', index: 'contact_zip', width: 50, sorttype: "int" }*/
+				],
+				multiselect: false,
+				pagination: true,
+				pager: jQuery('#pager5'),
+				viewrecords: true,
+				sortname: 'legallast',
+				sortorder: 'asc',
+				viewrecords: true,
+				page: 1,
+				loadonce: true,
+				totalpages: mydata.length / 10,
+				totalrecords: mydata.length,
+				showpage: true,
+				ignoreCase: true,
+				caption: "",
+				altRows: true,
+				altclass: "zebra",
+				loadComplete: doWhenGridFullyLoaded,
+				autowidth: false,
+				shrinkToFit: true,
+				width: 936
+			}); //.navGrid("#pager5",{edit:false,add:false,del:false});
+			//jQuery("#jqgrid1").setGridParam({ rowNum: 10  }).trigger("reloadGrid");
+			jQuery("#jqgrid1").jqGrid('navGrid', '#pager5', {
+				edit: false,
+				add: false,
+				del: false
+			});
+
+		}
+
+		function doWhenGridFullyLoaded() {
+			$("option[value=100000000]").text('All');
+			$(".printbutton").show();
+			$('#loading').hide();
+		}
+
+		var select_field = $('#selType');
+		String.prototype.toTitleCase = function () {
+			var a = /^(a|an|and|as|at|but|by|en|for|if|in|nor|of|on|or|per|the|to|vs?\.?|via)$/i;
+			return this.replace(/[A-Za-z0-9\u00C0-\u00FF]+[^\s-]*/g, function (b, c, d) {
+				return c > 0 && c + b.length !== d.length && b.search(a) > -1 && ":" !== d.charAt(c - 2) && ("-" !== d.charAt(
+					c + b.length) || "-" === d.charAt(c - 1)) && d.charAt(c - 1).search(/[^\s-]/) < 0 ? b.toLowerCase() : b.substr(
+					1).search(/[A-Z]|\../) > -1 ? b : b.charAt(0).toUpperCase() + b.substr(1)
+			})
+		};
+
+		function populateTypeDropdown(data) {
+			if (!data.error && data.rows.length) {
+				$.each(data.rows, function (key, val) {
+					select_field.append($('<option>', {
+						'value': val.revenuecode
+					}).text(String(val.licensetype).toLowerCase().toTitleCase()));
+				});
+			}
+		}
+
+		(function ($) {
+			window.callWCFServiceJSON = function (callback, inURL, currobject, successCall) {
+				$.ajax({
+					dataType: "jsonp",
+					contentType: "application/json; charset=utf-8",
+					jsonpCallback: callback,
+					url: inURL,
+					async: true,
+					cache: true,
+					crossDomain: true,
+					timeout: 500000,
+					type: "GET",
+					xhrFields: {
+						withCredentials: false
+					},
+					error: function (jqXHR, textStatus, errorThrown) {
+						alert("ERROR: " + textStatus + " " + inURL);
+					},
+					statusCode: {
+						404: function () {
+							alert('ERROR: Could not connect to service.');
+						}
+					},
+					success: function (data) {
+						successCall(data, currobject);
+					}
+				});
+			};
+		})(jQuery);
+
+		$(document).ready(
+			function () {
+				$('form input:not([type="submit"])').keypress(function (e) {
+					if (e.keyCode == 13) {
+						e.preventDefault();
+						return false;
+					}
+				});
+				$("searchContractors").click(function (e) {
+					RunContractorSearch();
+					e.preventDefault();
+					return false;
+				});
+
+				// Dinamycally fill the Select field.
+				// window.callWCFServiceJSON('cb', '/licensetypes?$format=json&$callback=cb', null, function (data, currobject) { populateTypeDropdown(data); });
+
+				window.callWCFServiceJSON('cb', serviceURL + decodeURIComponent(
+						"select licensetype, revenuecode from li_trade_licenses where licensestatus = 'ACTIVE' group by revenuecode, licensetype order by licensetype"
+					), null,
+					function (data, curobject) {
+						populateTypeDropdown(data);
+					}
+				);
+				$('#selType').change(function () {
+					RunContractorSearch();
+				});
+
+				$('head').append(
+					'<link rel="stylesheet" type="text/css" media="screen" href="http://www.phila.gov/Style%20Library/CSS/jquery-ui-1.8.1.custom.css">'
+				);
+				$('head').append(
+					'<link rel="stylesheet" type="text/css" href="http://www.phila.gov/Style%20Library/CSS/ui.multiselect.css">');
+				$('head').append(
+					'<link rel="stylesheet" type="text/css" href="http://www.phila.gov/Style%20Library/CSS/ui.jqgrid.css">');
+				$('head').append(
+					'<link rel="stylesheet" type="text/css" media="print" href="http://www.phila.gov/Style%20Library/CSS/print.css">'
+				);
+
+
+
+				var target = document.getElementById('loading');
+				var spinner = new Spinner({
+					lines: 10, // The number of lines to draw
+					length: 10, // The length of each line
+					width: 7, // The line thickness
+					radius: 21, // The radius of the inner circle
+					color: '#000', // #rgb or #rrggbb
+					speed: 1, // Rounds per second
+					trail: 89, // Afterglow percentage
+					shadow: true, // Whether to render a shadow
+					hwaccel: true // Whether to use hardware acceleration
+				}).spin(target);
+
+				$(".current").removeClass("current");
+				$("[href$='" + document.location.pathname.substring(document.location.pathname.lastIndexOf('/')) + "']").addClass(
+					"current");
+				$(".printbutton").hide();
+				//setupGrid(mydata);
+			}
+		);
+	</script>
+</div>
