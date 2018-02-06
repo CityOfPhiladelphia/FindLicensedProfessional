@@ -28,9 +28,14 @@
 				background-color: #c5dbec;
 			}
 
-			#dataTable tr td:first-child,
-			#dataTable tr th:first-child {
+			#dataTable tr td,
+			#dataTable tr th {
 				border-right: 1px solid #3661a2;
+			}
+
+			#dataTable tr td:last-child,
+			#dataTable tr th:last-child {
+				border-right: none;
 			}
 
 			#dataTable_wrapper .dt-buttons .dt-button,
@@ -52,7 +57,7 @@
 			}
 		</style>
 		<script type="text/javascript" src="//cdn.datatables.net/v/dt/dt-1.10.16/b-1.4.2/b-print-1.4.2/datatables.min.js"></script>
-		<link rel="stylesheet" type="text/css" media="print" href="http://www.phila.gov/Style%20Library/CSS/print.css">
+		<link rel="stylesheet" type="text/css" media="print" href="//www.phila.gov/Style%20Library/CSS/print.css">
 		<div class="loading" id='loading' style='display: none;'></div>
 		<div class="searchParams">
 			<!--<div class="searchHeader" style="padding-bottom:20px;>
@@ -67,13 +72,13 @@
 		</div>
 
 		<div class="searchResults">
-
 			<div id="jqGridContainer">
 				<table id="dataTable" class="display" width="100%"></table>
 			</div>
 			<div class="printbutton">
 				<input type=button value="Print This View" class="btnBlue" onclick="Print()" />
 			</div>
+			<p>Click <a href="https://www.opendataphilly.org/dataset/licenses-and-inspections-trade-licenses" target="_blank">here</a> for more information on Trade Licenses from Open Data Philly</p>
 		</div>
 
 		<script language="javascript" type="text/javascript">
@@ -95,8 +100,8 @@
 				var selectOption = $('#selType');
 
 				var gotourl = serviceURL + decodeURIComponent(
-					"select concat(contactname, ' ', companyname) as name_company, licensenumber from li_trade_licenses where revenuecode = '" +
-					selectOption.val().toString() + "' AND licensestatus = 'ACTIVE' order by name_company asc");
+					"SELECT contactname, companyname, licensenumber from li_trade_licenses WHERE revenuecode = '" +
+					selectOption.val().toString() + "' AND licensestatus = 'ACTIVE' ORDER BY contactname ASC");
 				cb2 = null;
 				window.callWCFServiceJSON('cb2', gotourl + "&$format=json", null, function (data,
 					currobject) {
@@ -117,8 +122,12 @@
 				table = $('#dataTable').DataTable({
 					data: mydata,
 					columns: [{
-							data: 'name_company',
-							title: 'Contact'
+							data: 'contactname',
+							title: 'License Holder'
+						},
+						{
+							data: 'companyname',
+							title: 'Company Name (If Provided)'
 						},
 						{
 							data: 'licensenumber',
@@ -205,7 +214,7 @@
 					// window.callWCFServiceJSON('cb', '/licensetypes?$format=json&$callback=cb', null, function (data, currobject) { populateTypeDropdown(data); });
 
 					window.callWCFServiceJSON('cb', serviceURL + decodeURIComponent(
-							"select licensetype, revenuecode from li_trade_licenses where licensestatus = 'ACTIVE' group by revenuecode, licensetype order by licensetype"
+							"SELECT licensetype, revenuecode from li_trade_licenses WHERE licensestatus = 'ACTIVE' GROUP BY revenuecode, licensetype ORDER BY licensetype"
 						), null,
 						function (data, curobject) {
 							populateTypeDropdown(data);
