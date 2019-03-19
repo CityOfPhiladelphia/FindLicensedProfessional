@@ -36,6 +36,16 @@
 		#dataTable tr th:last-child {
 			border-right: none;
 		}
+
+		#dataTable tr td:nth-child(3),
+		#dataTable tr th:nth-child(3) {
+			width: 40%;
+		}
+		
+		#dataTable tr td:nth-child(4),
+		#dataTable tr th:nth-child(4) {
+			width: 54px;
+		}
 		
 		#dataTable_wrapper .dt-buttons {
 			float: none;
@@ -94,6 +104,7 @@
 		var minicache = {};
 		var mydata = [];
 		var serviceURL = "https://data.phila.gov/carto/api/v2/sql?q=";
+		var query_base = "SELECT contactname, companyname, icccategory, licensenumber FROM li_trade_licenses WHERE licensestatus = 'ACTIVE'";
 
 		function RunContractorSearch() {
 			$('#loading').show();
@@ -101,9 +112,9 @@
 			var type = selectOption.val().toString();
 			var gotourl = '';
 			if ( type === 'all' ) {
-				gotourl = serviceURL + decodeURIComponent("SELECT contactname, companyname, licensenumber from li_trade_licenses WHERE licensestatus = 'ACTIVE' ORDER BY (NULLIF(contactname, '') IS NULL), contactname ASC");
+				gotourl = serviceURL + decodeURIComponent(query_base + " ORDER BY (NULLIF(contactname, '') IS NULL), contactname ASC");
 			} else {
-				gotourl = serviceURL + decodeURIComponent("SELECT contactname, companyname, licensenumber from li_trade_licenses WHERE revenuecode = '" + type + "' AND licensestatus = 'ACTIVE' ORDER BY (NULLIF(contactname, '') IS NULL), contactname ASC");
+				gotourl = serviceURL + decodeURIComponent(query_base + " AND licensetypeobjectid = '" + type + "' ORDER BY (NULLIF(contactname, '') IS NULL), contactname");
 			}
 			
 			if ( minicache[type] !== undefined ) {
@@ -141,12 +152,16 @@
 					},
 					{
 						data: 'companyname',
-						title: 'Company Name (If Provided)'
+						title: 'Company Name<br><small>(If Provided)</small>'
+					},
+					{
+						data: 'icccategory',
+						title: 'Special Inspection<br>Categories'
 					},
 					{
 						data: 'licensenumber',
 						title: 'License #'
-					}
+					},
 				],
 				lengthMenu: [[25, 50, 100, -1], [25, 50, 100, "All"]],
 				pageLength: 50,
@@ -178,7 +193,7 @@
 			if (!data.error && data.rows.length) {
 				$.each(data.rows, function (key, val) {
 					select_field.append($('<option>', {
-						'value': val.revenuecode
+						'value': val.licensetypeobjectid
 					}).text(String(val.licensetype).toLowerCase().toTitleCase()));
 				});
 			}
@@ -228,7 +243,7 @@
 				});
 
 				window.callWCFServiceJSON(serviceURL + decodeURIComponent(
-						"SELECT licensetype, revenuecode from li_trade_licenses WHERE licensestatus = 'ACTIVE' GROUP BY revenuecode, licensetype ORDER BY licensetype"
+						"SELECT licensetype, licensetypeobjectid from li_trade_licenses GROUP BY licensetype, licensetypeobjectid ORDER BY licensetype"
 					), null,
 					function (data, curobject) {
 						populateTypeDropdown(data);
@@ -245,16 +260,6 @@
 					}
 					RunContractorSearch();
 				});
-
-				// $('head').append(
-				// 	'<link rel="stylesheet" type="text/css" media="screen" href="http://www.phila.gov/Style%20Library/CSS/jquery-ui-1.8.1.custom.css">'
-				// );
-				// $('head').append(
-				// 	'<link rel="stylesheet" type="text/css" href="http://www.phila.gov/Style%20Library/CSS/ui.multiselect.css">');
-				// $('head').append(
-				// 	'<link rel="stylesheet" type="text/css" href="http://www.phila.gov/Style%20Library/CSS/ui.jqgrid.css">');
-
-
 
 				var target = document.getElementById('loading');
 				var spinner = new Spinner({
